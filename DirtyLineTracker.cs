@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.Text;
 
@@ -9,7 +10,7 @@ namespace GitLineBlame;
 /// happen on the UI thread (buffer.Changed and FileActionOccurred both fire
 /// on the UI thread in Visual Studio).
 /// </summary>
-internal sealed class DirtyLineTracker
+internal sealed class DirtyLineTracker : IDisposable
 {
     private readonly HashSet<int> _dirtyLines = new();
     private readonly ITextBuffer _buffer;

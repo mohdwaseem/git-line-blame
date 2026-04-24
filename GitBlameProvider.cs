@@ -81,30 +81,25 @@ internal static class GitBlameProvider
             // git blame is 1-indexed; lineNumber coming in is 0-indexed.
             int gitLine = lineNumber + 1;
 
-            // Use ArgumentList (not Arguments string) so paths with spaces or
-            // special characters are handled safely without shell quoting issues.
             var psi = new ProcessStartInfo
             {
                 FileName               = git,
+                // QuoteArg handles paths with spaces; -L range and flags need no quoting.
+                Arguments              = $"blame -L {gitLine},{gitLine} --porcelain -- {QuoteArg(filePath)}",
                 RedirectStandardOutput = true,
                 RedirectStandardError  = true,
                 UseShellExecute        = false,
                 CreateNoWindow         = true,
                 WorkingDirectory       = repoRoot,
             };
-            psi.ArgumentList.Add("blame");
-            psi.ArgumentList.Add("-L");
-            psi.ArgumentList.Add($"{gitLine},{gitLine}");
-            psi.ArgumentList.Add("--porcelain");
-            psi.ArgumentList.Add("--");
-            psi.ArgumentList.Add(filePath);
 
             DiagLog.Write($"GetBlameAsync: running git blame line {gitLine} for {filePath}");
 
             string output = await RunProcessAsync(psi, cancellationToken)
                 .ConfigureAwait(false);
 
-            DiagLog.Write($"GetBlameAsync: git output ({output.Length} chars): {output.Replace("\n", "\\n")[..Math.Min(200, output.Length)]}");
+            string _preview = output.Replace("\n", "\\n");
+            DiagLog.Write($"GetBlameAsync: git output ({output.Length} chars): {_preview.Substring(0, Math.Min(200, _preview.Length))}");
 
             if (string.IsNullOrWhiteSpace(output))
             {
@@ -185,21 +180,21 @@ internal static class GitBlameProvider
         {
             string line = rawLine.TrimEnd('\r');
 
-            if (hash is null && line.Length >= 40 && !line.StartsWith('\t'))
+            if (hash is null && line.Length >= 40 && line[0] != '\t')
             {
                 // First non-tab line is: "<40-char-hash> <orig-line> <final-line> [count]"
                 int spaceIdx = line.IndexOf(' ');
-                hash = spaceIdx > 0 ? line[..spaceIdx] : line;
-                if (hash.Length > 7) hash = hash[..7];
+                hash = spaceIdx > 0 ? line.Substring(0, spaceIdx) : line;
+                if (hash.Length > 7) hash = hash.Substring(0, 7);
                 continue;
             }
 
             if (line.StartsWith("author ", StringComparison.Ordinal))
-                author = line[7..].Trim();
+                author = line.Substring(7).Trim();
             else if (line.StartsWith("author-time ", StringComparison.Ordinal))
-                _ = long.TryParse(line[12..].Trim(), out authorTime);
+                _ = long.TryParse(line.Substring(12).Trim(), out authorTime);
             else if (line.StartsWith("summary ", StringComparison.Ordinal))
-                summary = line[8..].Trim();
+                summary = line.Substring(8).Trim();
         }
 
         if (hash is null || author is null)
@@ -211,7 +206,7 @@ internal static class GitBlameProvider
 
         string relDate = authorTime > 0 ? ToRelativeDate(authorTime) : "";
         string message = summary is { Length: > 60 }
-            ? summary[..60] + "…"
+            ? summary.Substring(0, 60) + "…"
             : summary ?? "";
 
         return new BlameInfo(hash, author, relDate, message);
@@ -238,6 +233,14 @@ internal static class GitBlameProvider
     private static string CacheKey(string filePath, int lineNumber)
         => $"{filePath}:{lineNumber}";
 
+    // Wrap an argument in double-quotes if it contains spaces or quotes.
+    // Used when building the git process Arguments string on net472 (which
+    // does not have ProcessStartInfo.ArgumentList).
+    private static string QuoteArg(string arg)
+        => arg.IndexOf(' ') >= 0 || arg.IndexOf('"') >= 0
+            ? "\"" + arg.Replace("\"", "\\\"") + "\""
+            : arg;
+
     /// <summary>
     /// Resolves the git executable once and caches the result.
     /// Tries PATH first, then VS 2026 bundled git locations.
@@ -260,7 +263,7 @@ internal static class GitBlameProvider
                         UseShellExecute        = false,
                         CreateNoWindow         = true,
                     };
-                    psi.ArgumentList.Add("--version");
+                    psi.Arguments = "--version";
                     using var probe = Process.Start(psi);
                     if (probe is not null)
                     {

@@ -154,6 +154,7 @@ internal sealed class GitBlameAdornmentHandler
             // --- Dirty line check (synchronous, no git call needed) ---
             if (_dirtyLineTracker.IsLineDirty(lineNumber))
             {
+#pragma warning disable VSTHRD001
                 await _textView.VisualElement.Dispatcher.InvokeAsync(() =>
                 {
                     if (cancellationToken.IsCancellationRequested || _textView.IsClosed)
@@ -177,7 +178,7 @@ internal sealed class GitBlameAdornmentHandler
 
                 string text = blame.Hash == "0000000"
                     ? "  Not committed yet"
-                    : $"  {blame.Author}, {blame.RelativeDate} \u2022 {blame.Message}";
+                    : $"  {blame.Author}  \u2022  #{blame.Hash}  \u2022  {blame.RelativeDate}  \u2022  {blame.Message}";
 
                 RenderAdornment(lineNumber, text, BlameColor);
             });
@@ -232,9 +233,10 @@ internal sealed class GitBlameAdornmentHandler
         };
 
         // Position: immediately after the line's last character, vertically
-        // centred within the line height.
+        // centred within the line height. Use viewLine.TextHeight (the actual
+        // rendered text height) rather than FontSize for accurate centering.
         Canvas.SetLeft(element, viewLine.TextRight + 16);
-        Canvas.SetTop(element, viewLine.Top + (viewLine.Height - element.FontSize) / 2);
+        Canvas.SetTop(element, viewLine.Top + (viewLine.Height - viewLine.TextHeight) / 2);
 
         // AdornmentPositioningBehavior.TextRelative causes VS to automatically
         // reposition the element when the viewport scrolls vertically — no need
