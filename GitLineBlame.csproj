@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <!--
+      net8.0-windows targets VS 2026 (which ships with .NET 8 runtime).
+      Update SDK package versions below if newer releases are available on NuGet.
+    -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <UseWPF>true</UseWPF>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!--
+      CopyLocalLockFileAssemblies: ensures dependent assemblies land in the
+      output folder so the VSSDK build tools can package them into the VSIX.
+    -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RootNamespace>GitLineBlame</RootNamespace>
+    <!--
+      NU1701: VS SDK packages are compiled for .NET Framework but work correctly
+      at runtime inside VS 2022/2026 (which loads net8.0-windows assemblies).
+      This warning is expected and safe to suppress.
+    -->
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
+    <!--
+      VSSDKBuildToolsAutoSetup=true enables the full VSSDK build pipeline:
+      - Sets CreateVsixContainer=true, GeneratePkgDefFile=false, UseCodebase=true
+      - Imports $(VSToolsPath)\vssdk\Microsoft.VSSDK.targets (the VSIX packaging targets)
+      VSToolsPath is set automatically by VS 2026 when building from within the IDE,
+      OR via the BuildVsix.ps1 helper script in this repo.
+      Requires: "Visual Studio extension development" workload installed in VS 2026.
+    -->
+    <VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
+    <!--
+      Keep the old property as well for compatibility with older VSSDK targets.
+    -->
+    <VssdkCreateVsixContainer>true</VssdkCreateVsixContainer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Microsoft.VSSDK.BuildTools provides the MSBuild targets that create the
+      .vsix file.  Must be a direct (not transitive-only) reference so the
+      targets are imported.  PrivateAssets="all" keeps it out of the package
+      API surface — it is a build tool only.
+      Version must match the Microsoft.VisualStudio.SDK major.minor.
+    -->
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.6.38345" PrivateAssets="all" />
+    <!--
+      Microsoft.VisualStudio.SDK is the umbrella meta-package for the VS editor API.
+      It transitively pulls in Microsoft.VSSDK.BuildTools which converts this project
+      into a VSIX build (outputs a .vsix file alongside the DLL).
+      ExcludeAssets="runtime" prevents VS SDK assemblies from being bundled in the
+      VSIX — they are already present inside Visual Studio.
+      Update version to latest 17.x / 18.x available on NuGet for VS 2026.
+    -->
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
+    <!--
+      Microsoft.VisualStudio.Threading provides JoinableTaskFactory and related
+      async helpers. Also shipped with VS so ExcludeAssets="runtime" applies.
+    -->
+    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="17.14.15" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="source.extension.vsixmanifest">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+
+</Project>

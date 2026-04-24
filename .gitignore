@@ -1,0 +1,18 @@
+# Build outputs
+bin/
+obj/
+
+# NuGet restore artifacts (package sources are in NuGet.config / packages.lock.json)
+*.user
+*.suo
+.vs/
+
+# MSBuild log files written by BuildVsix.ps1
+build.log
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+
+# Stray image files
+*.png

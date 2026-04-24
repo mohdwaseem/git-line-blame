@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0"
+                 xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"
+                 xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="GitLineBlame.mwaseem.2026"
+              Version="1.0.0"
+              Language="en-US"
+              Publisher="mwaseem" />
+    <DisplayName>Git Line Blame</DisplayName>
+    <Description xml:space="preserve">
+      Shows inline git blame — author, date, and commit message — as faded italic
+      text at the end of the line where your cursor currently sits.
+      Clears instantly when you move to a different line.
+      Modified (unsaved) lines show "Modified — not committed" in amber instead.
+    </Description>
+    <Tags>git, blame, inline, author, commit, adornment</Tags>
+  </Metadata>
+
+  <Installation>
+    <!--
+      [18.0, 19.0) targets VS 2026, whose internal product version is 18.x.
+      ProductArchitecture is a child element (not attribute) — values: x86 | amd64 | arm64.
+    -->
+    <InstallationTarget Id="Microsoft.VisualStudio.Community"    Version="[18.0, 19.0)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Professional" Version="[18.0, 19.0)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise"   Version="[18.0, 19.0)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP"
+                DisplayName=".NET Framework"
+                d:Source="Auto"
+                Version="[4.5,)" />
+  </Dependencies>
+
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor"
+                  Version="[18.0, 19.0)"
+                  DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+
+  <Assets>
+    <!--
+      Declares this DLL as a MEF component. VS scans it for [Export] attributes
+      at startup so no manual registration is required.
+    -->
+    <Asset Type="Microsoft.VisualStudio.MefComponent"
+           d:Source="Project"
+           d:ProjectName="%CurrentProject%"
+           Path="|%CurrentProject%|" />
+  </Assets>
+</PackageManifest>
